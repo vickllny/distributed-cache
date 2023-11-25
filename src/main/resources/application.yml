@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: Qaq123456-
+    url: jdbc:mysql://127.0.0.1:3306/distributed_cache?characterEncoding=utf-8&useUnicode=true
+  redis:
+    host: 127.0.0.1
+    port: 6379
