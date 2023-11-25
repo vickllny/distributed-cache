@@ -30,7 +30,7 @@ public class RoleServiceImpl extends CacheServiceImpl<RoleMapper, Role> implemen
             iRoleService.removeById(role1.getId());
         }
         //新增
-        return roleMapper.insert(role1) > 0;
+        return roleMapper.insert(role) > 0;
     }
 
 }

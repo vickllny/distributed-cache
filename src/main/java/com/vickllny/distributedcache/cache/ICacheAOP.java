@@ -1,5 +1,6 @@
 package com.vickllny.distributedcache.cache;
 
+import com.vickllny.distributedcache.config.CacheTransactionSynchronization;
 import com.vickllny.distributedcache.tx.CacheTransactionManager;
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -49,6 +50,8 @@ public interface ICacheAOP {
                 methodName.startsWith(UPDATE_PREFIX) ||
                 methodName.startsWith(DELETE_PREFIX) ||
                 methodName.startsWith(REMOVE_PREFIX)){
+            final String finalNamespace = namespace;
+            CacheTransactionSynchronization.addTask(() -> updateCache(finalNamespace));
             result = pjp.proceed();
             if(result != null && (boolean) result){
                 updateCache(namespace);

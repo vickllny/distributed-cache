@@ -1,5 +1,6 @@
 package com.vickllny.distributedcache.domain;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -10,9 +11,9 @@ public class Role {
 
     @TableId("id")
     private Integer id;
-    @TableId("role_name")
+    @TableField("role_name")
     private String roleName;
-    @TableId("role_code")
+    @TableField("role_code")
     private String roleCode;
 
 }

@@ -27,7 +27,7 @@ public class UserServiceImpl extends CacheServiceImpl<UserMapper, User> implemen
             iUserService.removeById(user1.getId());
         }
         //新增
-        return iUserService.saveUser1(user);
+        return userMapper.insert(user) > 0;
     }
 
     @Override
