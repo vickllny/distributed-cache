@@ -14,13 +14,13 @@ public class User {
 
     @TableId("id")
     @NotNull
-    private Long id;
+    protected String id;
 
     @TableField("user_name")
     @NotBlank
-    private String userName;
+    protected String userName;
 
     @TableField("login_name")
     @NotBlank
-    private String loginName;
+    protected String loginName;
 }
