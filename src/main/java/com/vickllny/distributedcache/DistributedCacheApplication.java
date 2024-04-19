@@ -67,11 +67,12 @@ public class DistributedCacheApplication implements CommandLineRunner {
 
 
 		//生成mapper
-		final Class<?> mapperClass = new ByteBuddy()
+		final DynamicType.Loaded<?> mapperLoad = new ByteBuddy()
 				.makeInterface(TypeDescription.Generic.Builder.parameterizedType(BaseMapper.class, entityClass).build())
 				.name(String.format("com.vickllny.distributedcache.mapper.%sMapper", entityClass.getSimpleName()))
 				.make()
-				.load(ClassUtils.class.getClassLoader())
+				.load(ClassUtils.class.getClassLoader());
+		final Class<?> mapperClass = mapperLoad
 				.getLoaded();
 
 		TableInfoHelper.getTableInfo(User.class).getConfiguration().addMapper(mapperClass);
