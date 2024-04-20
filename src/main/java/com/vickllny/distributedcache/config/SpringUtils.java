@@ -1,6 +1,10 @@
 package com.vickllny.distributedcache.config;
 
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.beans.factory.support.BeanDefinitionBuilder;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
@@ -50,6 +54,8 @@ public class SpringUtils implements ApplicationContextAware {
     }
 
     public static void registerBean(String beanName, Object bean){
-        return;
+        final ConfigurableListableBeanFactory beanFactory = ((AnnotationConfigServletWebServerApplicationContext) context).getBeanFactory();
+        beanFactory.registerSingleton(beanName, bean);
+//        beanFactory.registerBeanDefinition(beanName, BeanDefinitionBuilder.genericBeanDefinition(beanName).getBeanDefinition());
     }
 }

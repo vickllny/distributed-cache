@@ -16,6 +16,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
 import net.bytebuddy.implementation.FieldAccessor;
+import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.matcher.ElementMatchers;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -54,23 +55,31 @@ public class DistributedCacheApplication implements CommandLineRunner {
 	public void run(final String... args) throws Exception {
 		final String hash = hash(UUID.randomUUID().toString(), 6);
 
+		Class<?> dynamicType1 = new ByteBuddy()
+				.subclass(Object.class)
+				.defineField("username", String.class, Modifier.PRIVATE)
+				.defineField("password", String.class)
+				.name("com.vickllny.distributedcache.DynamicUser")
+				.make()
+				.load(getClass().getClassLoader(), ClassLoadingStrategy.Default.WRAPPER)
+				.getLoaded();
+
+
 		//生成entityClass
 		final DynamicType.Unloaded<User> dynamicType = new ByteBuddy()
 				.subclass(User.class)
 				.annotateType(AnnotationDescription.Builder.ofType(TableName.class)
 						.define("value", "t_user_" + hash).build())
-				.defineField("password", String.class)
+				.defineProperty("password", String.class)
 				.annotateField(AnnotationDescription.Builder.ofType(TableField.class)
 						.define("value", "password").build())
-				.defineMethod("getPassword", String.class, Modifier.PUBLIC)
-				.intercept(FieldAccessor.ofField("password"))
-				.defineMethod("setPassword", void.class, Modifier.PUBLIC)
-				.withParameters(String.class)
-				.intercept(FieldAccessor.ofField("password"))
+				.defineProperty("lock", String.class)
+				.annotateField(AnnotationDescription.Builder.ofType(TableField.class)
+						.define("value", "lock").build())
 				.name("com.vickllny.distributedcache.domain.User" + StringUtils.capitalize(hash))
 				.make();
 
-		final Class<? extends User> entityClass = dynamicType.load(getClass().getClassLoader(), ClassLoadingStrategy.Default.WRAPPER).getLoaded();
+		final Class<? extends User> entityClass = dynamicType.load(getClass().getClassLoader(), ClassLoadingStrategy.Default.INJECTION).getLoaded();
 
 
 		//生成mapper
@@ -88,11 +97,11 @@ public class DistributedCacheApplication implements CommandLineRunner {
 
 		SpringUtils.registerBean(getBeanName(mapperClass.getSimpleName()), factoryBean.getObject());
 
-		final User user = entityClass.getConstructor().newInstance();
+		final User user = entityClass.getDeclaredConstructor().newInstance();
 		user.setId("12312312312");
 		user.setUserName("aaaaaa");
 		user.setLoginName("aaaaaa");
-		ReflectionUtils.setField(entityClass.getField("password"), user, "1234556");
+		ReflectionUtils.invokeMethod(entityClass.getDeclaredMethod("setPassword", String.class), user, "1234556");
 
 		//测试保存
 		baseMappers.get(0).insert(user);
