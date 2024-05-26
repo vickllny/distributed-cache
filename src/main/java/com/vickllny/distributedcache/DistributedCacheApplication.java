@@ -8,8 +8,11 @@ import com.baomidou.mybatisplus.core.toolkit.ClassUtils;
 import com.google.common.hash.Hashing;
 import com.vickllny.distributedcache.annotations.EnableASyncTask;
 import com.vickllny.distributedcache.config.SpringUtils;
+import com.vickllny.distributedcache.domain.AdminUser;
 import com.vickllny.distributedcache.domain.User;
+import com.vickllny.distributedcache.service.IAdminUserService;
 import com.vickllny.distributedcache.service.impl.TestService;
+import com.vickllny.distributedcache.utils.ContextUtils;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.description.annotation.AnnotationDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -53,58 +56,59 @@ public class DistributedCacheApplication implements CommandLineRunner {
 
 	@Override
 	public void run(final String... args) throws Exception {
-		final String hash = hash(UUID.randomUUID().toString(), 6);
+//		final String hash = hash(UUID.randomUUID().toString(), 6);
 
-		Class<?> dynamicType1 = new ByteBuddy()
-				.subclass(Object.class)
-				.defineField("username", String.class, Modifier.PRIVATE)
-				.defineField("password", String.class)
-				.name("com.vickllny.distributedcache.DynamicUser")
-				.make()
-				.load(getClass().getClassLoader(), ClassLoadingStrategy.Default.WRAPPER)
-				.getLoaded();
+//		Class<?> dynamicType1 = new ByteBuddy()
+//				.subclass(Object.class)
+//				.defineField("username", String.class, Modifier.PRIVATE)
+//				.defineField("password", String.class)
+//				.name("com.vickllny.distributedcache.DynamicUser")
+//				.make()
+//				.load(getClass().getClassLoader(), ClassLoadingStrategy.Default.WRAPPER)
+//				.getLoaded();
 
 
 		//生成entityClass
-		final DynamicType.Unloaded<User> dynamicType = new ByteBuddy()
-				.subclass(User.class)
-				.annotateType(AnnotationDescription.Builder.ofType(TableName.class)
-						.define("value", "t_user_" + hash).build())
-				.defineProperty("password", String.class)
-				.annotateField(AnnotationDescription.Builder.ofType(TableField.class)
-						.define("value", "password").build())
-				.defineProperty("lock", String.class)
-				.annotateField(AnnotationDescription.Builder.ofType(TableField.class)
-						.define("value", "lock").build())
-				.name("com.vickllny.distributedcache.domain.User" + StringUtils.capitalize(hash))
-				.make();
+//		final DynamicType.Unloaded<User> dynamicType = new ByteBuddy()
+//				.subclass(User.class)
+//				.annotateType(AnnotationDescription.Builder.ofType(TableName.class)
+//						.define("value", "t_user_" + hash).build())
+//				.defineProperty("password", String.class)
+//				.annotateField(AnnotationDescription.Builder.ofType(TableField.class)
+//						.define("value", "password").build())
+//				.defineProperty("lock", String.class)
+//				.annotateField(AnnotationDescription.Builder.ofType(TableField.class)
+//						.define("value", "lock").build())
+//				.name("com.vickllny.distributedcache.domain.User" + StringUtils.capitalize(hash))
+//				.make();
 
-		final Class<? extends User> entityClass = dynamicType.load(getClass().getClassLoader(), ClassLoadingStrategy.Default.INJECTION).getLoaded();
+//		final Class<? extends User> entityClass = dynamicType.load(getClass().getClassLoader(), ClassLoadingStrategy.Default.INJECTION).getLoaded();
 
 
 		//生成mapper
-		final DynamicType.Loaded<?> mapperLoad = new ByteBuddy()
-				.makeInterface(TypeDescription.Generic.Builder.parameterizedType(BaseMapper.class, entityClass).build())
-				.name(String.format("com.vickllny.distributedcache.mapper.%sMapper", entityClass.getSimpleName()))
-				.make()
-				.load(getClass().getClassLoader(), ClassLoadingStrategy.Default.INJECTION);
-		final Class<?> mapperClass = mapperLoad.getLoaded();
-
-		MapperFactoryBean<?> factoryBean = new MapperFactoryBean<>(mapperClass);
-		factoryBean.setSqlSessionFactory(sqlSessionFactory);
-
-		sqlSessionFactory.getConfiguration().addMapper(mapperClass);
-
-		SpringUtils.registerBean(getBeanName(mapperClass.getSimpleName()), factoryBean.getObject());
-
-		final User user = entityClass.getDeclaredConstructor().newInstance();
-		user.setId("12312312312");
-		user.setUserName("aaaaaa");
-		user.setLoginName("aaaaaa");
-		ReflectionUtils.invokeMethod(entityClass.getDeclaredMethod("setPassword", String.class), user, "1234556");
-
+//		final DynamicType.Loaded<?> mapperLoad = new ByteBuddy()
+//				.makeInterface(TypeDescription.Generic.Builder.parameterizedType(BaseMapper.class, entityClass).build())
+//				.name(String.format("com.vickllny.distributedcache.mapper.%sMapper", entityClass.getSimpleName()))
+//				.make()
+//				.load(getClass().getClassLoader(), ClassLoadingStrategy.Default.INJECTION);
+//		final Class<?> mapperClass = mapperLoad.getLoaded();
+//		MapperFactoryBean<?> factoryBean = new MapperFactoryBean<>(mapperClass);
+//		factoryBean.setSqlSessionFactory(sqlSessionFactory);
+//		sqlSessionFactory.getConfiguration().addMapper(mapperClass);
+//		SpringUtils.registerBean(getBeanName(mapperClass.getSimpleName()), factoryBean.getObject());
+//		final User user = entityClass.getDeclaredConstructor().newInstance();
+//		user.setId("12312312312");
+//		user.setUserName("aaaaaa");
+//		user.setLoginName("aaaaaa");
+//		ReflectionUtils.invokeMethod(entityClass.getDeclaredMethod("setPassword", String.class), user, "1234556");
 		//测试保存
-		baseMappers.get(0).insert(user);
+//		baseMappers.get(0).insert(user);
+
+
+		//
+		final IAdminUserService iAdminUserService = ContextUtils.getBean(IAdminUserService.class);
+		final List<AdminUser> userList = iAdminUserService.findByUserName("vickllny");
+		System.out.println(userList);
 	}
 
 	// 根据类名获取 bean name

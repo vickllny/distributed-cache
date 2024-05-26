@@ -9,7 +9,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 @Data
-@TableName("t_user")
+//@TableName("t_user")
 public class User {
 
     @TableId("id")

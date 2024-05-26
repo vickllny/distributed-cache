@@ -7,4 +7,6 @@ import com.vickllny.distributedcache.domain.User;
 public interface IUserService extends ICacheService<User> {
     Boolean saveUser(User user);
     Boolean saveUser1(User user);
+
+
 }
