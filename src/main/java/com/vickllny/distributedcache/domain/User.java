@@ -8,7 +8,7 @@ import lombok.Data;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
-@Data
+//@Data
 //@TableName("t_user")
 public class User {
 
@@ -23,4 +23,28 @@ public class User {
     @TableField("login_name")
     @NotBlank
     protected String loginName;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId( String id) {
+        this.id = id;
+    }
+
+    public @NotBlank String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(@NotBlank String userName) {
+        this.userName = userName;
+    }
+
+    public @NotBlank String getLoginName() {
+        return loginName;
+    }
+
+    public void setLoginName(@NotBlank String loginName) {
+        this.loginName = loginName;
+    }
 }
