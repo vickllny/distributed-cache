@@ -3,6 +3,8 @@ package com.vickllny.distributedcache;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
+import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.core.toolkit.ClassUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -26,7 +28,9 @@ import net.bytebuddy.implementation.FieldAccessor;
 import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.matcher.ElementMatchers;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.type.JdbcType;
 import org.mybatis.spring.annotation.MapperScan;
 import org.mybatis.spring.mapper.MapperFactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,16 +40,26 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cglib.proxy.Enhancer;
 import org.springframework.cglib.proxy.MethodInterceptor;
 import org.springframework.cglib.proxy.MethodProxy;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.ReflectionUtils;
 
+import javax.sql.DataSource;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.sql.Connection;
+import java.sql.Statement;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+@EnableScheduling
 @SpringBootApplication
 @MapperScan("com.vickllny.distributedcache.mapper")
 @EnableASyncTask(basePackages = "com.vickllny")
@@ -58,16 +72,19 @@ public class DistributedCacheApplication implements CommandLineRunner {
 	@Autowired
 	private SqlSessionFactory sqlSessionFactory;
 
+	@Autowired
+	private ConfigurableApplicationContext context;
+
 	public static void main(String[] args) {
 		SpringApplication.run(DistributedCacheApplication.class, args);
 	}
 
 	@Override
 	public void run(final String... args) throws Exception {
-//		final String hash = hash(UUID.randomUUID().toString(), 6);
-		final String hash = "test";
+		final String hash = hash(UUID.randomUUID().toString(), 6);
+//		final String hash = "test";
 
-		DynamicMapperClassLoader loader = new DynamicMapperClassLoader();
+		DynamicMapperClassLoader loader = new DynamicMapperClassLoader(hash);
 
 //		Class<?> dynamicType1 = new ByteBuddy()
 //				.subclass(Object.class)
@@ -80,10 +97,11 @@ public class DistributedCacheApplication implements CommandLineRunner {
 
 
 		//生成entityClass
+		String tableName = "t_user_" + hash;
 		final DynamicType.Unloaded<User> dynamicType = new ByteBuddy()
 				.subclass(User.class)
 				.annotateType(AnnotationDescription.Builder.ofType(TableName.class)
-						.define("value", "t_user_" + hash).build())
+						.define("value", tableName).build())
 				.defineProperty("password", String.class)
 				.annotateField(AnnotationDescription.Builder.ofType(TableField.class)
 						.define("value", "password").build())
@@ -95,6 +113,7 @@ public class DistributedCacheApplication implements CommandLineRunner {
 
 		final Class<? extends User> entityClass = dynamicType.load(loader, ClassLoadingStrategy.Default.INJECTION).getLoaded();
 
+		createUserMySQLTable(tableName, Stream.of("password", "_lock").collect(Collectors.toList()));
 
 		//生成mapper
 		final DynamicType.Loaded<?> mapperLoad = new ByteBuddy()
@@ -113,8 +132,9 @@ public class DistributedCacheApplication implements CommandLineRunner {
 		user.setUserName("aaaaaa");
 		user.setLoginName("aaaaaa");
 		ReflectionUtils.invokeMethod(entityClass.getDeclaredMethod("setPassword", String.class), user, "1234556");
+		ReflectionUtils.invokeMethod(entityClass.getDeclaredMethod("setLock", String.class), user, "false");
 		//测试保存
-//		((BaseMapper)SpringUtils.getBean(mapperClass)).insert(user);
+		((BaseMapper)SpringUtils.getBean(mapperClass)).insert(user);
 
 		final DynamicType.Loaded<?> serviceLoad = new ByteBuddy()
 				.subclass(TypeDescription.Generic.Builder.parameterizedType(CommonUserServiceImpl.class, mapperClass, entityClass).build())
@@ -131,13 +151,36 @@ public class DistributedCacheApplication implements CommandLineRunner {
             return proxy.invokeSuper(obj, args1);
         });
 		CommonUserServiceImpl serviceBeanObject = (CommonUserServiceImpl)enhancer.create();
+
+		enhancer = null;
+
 		serviceBeanObject.setBaseMapper((BaseMapper) mapperBeanObject);
 		SpringUtils.registerBean(getBeanName(serviceClass.getSimpleName()), serviceBeanObject);
-		List list = ((ServiceImpl) SpringUtils.getBean(serviceClass)).list();
-		//
-		final IAdminUserService iAdminUserService = ContextUtils.getBean(IAdminUserService.class);
-		final List<AdminUser> userList = iAdminUserService.findByUserName("vickllny");
-		System.out.println(userList);
+//		List list = ((ServiceImpl) SpringUtils.getBean(serviceClass)).list();
+//		System.out.println(list);
+
+		loader.setEntityClazz(entityClass);
+		loader.setMapperClazz(mapperClass);
+		loader.setServiceClazz(serviceClass);
+
+		SpringUtils.registerBean("DynamicClassLoader" + hash, loader);
+	}
+
+	@Scheduled(cron = "0 * * * * ?")
+	public void destroyBean(){
+		final List<DynamicMapperClassLoader> list = ContextUtils.getBeans(DynamicMapperClassLoader.class);
+		if(CollectionUtils.isEmpty(list)){
+			return;
+		}
+		for (DynamicMapperClassLoader loader : list) {
+			loader.uninstall();
+			if (context.getBeanFactory().containsBean(loader.getBeanName())) {
+				((ConfigurableApplicationContext) context).getBeanFactory().destroyBean(loader);
+			}
+			SpringUtils.destroyBean(loader);
+			loader = null;
+			System.gc();
+		}
 	}
 
 	// 根据类名获取 bean name
@@ -173,6 +216,33 @@ public class DistributedCacheApplication implements CommandLineRunner {
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 			return null;
+		}
+	}
+
+	void createUserMySQLTable(final String tableName, final List<String> columnList){
+		StringBuffer sql = new StringBuffer("CREATE TABLE `").append(tableName).append("` (\n");
+		sql.append("  `id` varchar(100) DEFAULT NULL,\n");
+		sql.append("  `user_name` varchar(100) DEFAULT NULL,\n");
+		sql.append("  `login_name` varchar(100) DEFAULT NULL,\n");
+		for (int i = 0; i < columnList.size(); i++) {
+			String column = columnList.get(i);
+			sql.append("`").append(column).append("` varchar(100) DEFAULT NULL");
+			if(i != columnList.size() - 1){
+				sql.append(",");
+			}
+		}
+		sql.append(" ) ENGINE=InnoDB DEFAULT CHARSET=utf8;");
+		System.out.println(sql);
+		executeDDL(sql.toString());
+	}
+
+	void executeDDL(final String ddl){
+		final DataSource dataSource = ContextUtils.getBean(DataSource.class);
+		try (final Connection connection = dataSource.getConnection();
+			 final Statement statement = connection.createStatement()){
+			statement.execute(ddl);
+		}catch (Exception e){
+			e.printStackTrace();
 		}
 	}
 }
