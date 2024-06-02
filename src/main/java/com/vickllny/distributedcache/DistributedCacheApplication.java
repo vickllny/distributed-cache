@@ -112,55 +112,57 @@ public class DistributedCacheApplication implements CommandLineRunner {
 
 		final Class<? extends User> entityClass = dynamicType.load(loader, ClassLoadingStrategy.Default.INJECTION).getLoaded();
 
-//		createUserMySQLTable(tableName, Stream.of("password", "_lock").collect(Collectors.toList()));
+		createUserMySQLTable(tableName, Stream.of("password", "_lock").collect(Collectors.toList()));
 
 		//生成mapper
-//		final DynamicType.Loaded<?> mapperLoad = new ByteBuddy()
-//				.makeInterface(TypeDescription.Generic.Builder.parameterizedType(BaseMapper.class, entityClass).build())
-//				.name(String.format("com.vickllny.distributedcache.mapper.%sMapper", entityClass.getSimpleName()))
-//				.make()
-//				.load(loader, ClassLoadingStrategy.Default.INJECTION);
-//		final Class<?> mapperClass = mapperLoad.getLoaded();
-//		MapperFactoryBean<?> factoryBean = new MapperFactoryBean<>(mapperClass);
-//		factoryBean.setSqlSessionFactory(sqlSessionFactory);
-//		sqlSessionFactory.getConfiguration().addMapper(mapperClass);
-//		Object mapperBeanObject = factoryBean.getObject();
-//		SpringUtils.registerBean(getBeanName(mapperClass.getSimpleName()), mapperBeanObject);
-//		final User user = entityClass.getDeclaredConstructor().newInstance();
-//		user.setId("12312312312");
-//		user.setUserName("aaaaaa");
-//		user.setLoginName("aaaaaa");
-//		ReflectionUtils.invokeMethod(entityClass.getDeclaredMethod("setPassword", String.class), user, "1234556");
-//		ReflectionUtils.invokeMethod(entityClass.getDeclaredMethod("setLock", String.class), user, "false");
+		final DynamicType.Loaded<?> mapperLoad = new ByteBuddy()
+				.makeInterface(TypeDescription.Generic.Builder.parameterizedType(BaseMapper.class, entityClass).build())
+				.name(String.format("com.vickllny.distributedcache.mapper.%sMapper", entityClass.getSimpleName()))
+				.make()
+				.load(loader, ClassLoadingStrategy.Default.INJECTION);
+		final Class<?> mapperClass = mapperLoad.getLoaded();
+		MapperFactoryBean<?> factoryBean = new MapperFactoryBean<>(mapperClass);
+		factoryBean.setSqlSessionFactory(sqlSessionFactory);
+		sqlSessionFactory.getConfiguration().addMapper(mapperClass);
+		Object mapperBeanObject = factoryBean.getObject();
+		SpringUtils.registerBean(getBeanName(mapperClass.getSimpleName()), mapperBeanObject);
+		loader.setMapperBeanName(getBeanName(mapperClass.getSimpleName()));
+		final User user = entityClass.getDeclaredConstructor().newInstance();
+		user.setId("12312312312");
+		user.setUserName("aaaaaa");
+		user.setLoginName("aaaaaa");
+		ReflectionUtils.invokeMethod(entityClass.getDeclaredMethod("setPassword", String.class), user, "1234556");
+		ReflectionUtils.invokeMethod(entityClass.getDeclaredMethod("setLock", String.class), user, "false");
 		//测试保存
-//		((BaseMapper)SpringUtils.getBean(mapperClass)).insert(user);
+		((BaseMapper)SpringUtils.getBean(mapperClass)).insert(user);
 
-//		final DynamicType.Loaded<?> serviceLoad = new ByteBuddy()
-//				.subclass(TypeDescription.Generic.Builder.parameterizedType(CommonUserServiceImpl.class, mapperClass, entityClass).build())
-//				.name(String.format("com.vickllny.distributedcache.service.impl.%sServiceImpl", entityClass.getSimpleName()))
-//				.make()
-//				.load(loader, ClassLoadingStrategy.Default.INJECTION);
-//		final Class<?> serviceClass = serviceLoad.getLoaded();
-//
-//		Enhancer enhancer = new Enhancer();
-//		enhancer.setSuperclass(serviceClass);
-//		enhancer.setClassLoader(loader);
-//		enhancer.setCallback((MethodInterceptor) (obj, method, args1, proxy) -> {
-//            // 自定义方法拦截逻辑
-//            return proxy.invokeSuper(obj, args1);
-//        });
-//		CommonUserServiceImpl serviceBeanObject = (CommonUserServiceImpl)enhancer.create();
+		final DynamicType.Loaded<?> serviceLoad = new ByteBuddy()
+				.subclass(TypeDescription.Generic.Builder.parameterizedType(CommonUserServiceImpl.class, mapperClass, entityClass).build())
+				.name(String.format("com.vickllny.distributedcache.service.impl.%sServiceImpl", entityClass.getSimpleName()))
+				.make()
+				.load(loader, ClassLoadingStrategy.Default.INJECTION);
+		final Class<?> serviceClass = serviceLoad.getLoaded();
 
-//		enhancer = null;
+		Enhancer enhancer = new Enhancer();
+		enhancer.setSuperclass(serviceClass);
+		enhancer.setClassLoader(loader);
+		enhancer.setCallback((MethodInterceptor) (obj, method, args1, proxy) -> {
+            // 自定义方法拦截逻辑
+            return proxy.invokeSuper(obj, args1);
+        });
+		CommonUserServiceImpl serviceBeanObject = (CommonUserServiceImpl)enhancer.create();
 
-//		serviceBeanObject.setBaseMapper((BaseMapper) mapperBeanObject);
-//		SpringUtils.registerBean(getBeanName(serviceClass.getSimpleName()), serviceBeanObject);
-//		List list = ((ServiceImpl) SpringUtils.getBean(serviceClass)).list();
-//		System.out.println(list);
+		enhancer = null;
+
+		serviceBeanObject.setBaseMapper((BaseMapper) mapperBeanObject);
+		SpringUtils.registerBean(getBeanName(serviceClass.getSimpleName()), serviceBeanObject);
+		loader.setServiceBeanName(getBeanName(serviceClass.getSimpleName()));
+		List list = ((ServiceImpl) SpringUtils.getBean(serviceClass)).list();
+		System.out.println(list);
 
 		loader.setEntityClazz(entityClass);
-//		loader.setMapperClazz(mapperClass);
-//		loader.setServiceClazz(serviceClass);
+		loader.setMapperClazz(mapperClass);
+		loader.setServiceClazz(serviceClass);
 
 		SpringUtils.registerBeanDefinition("DynamicMapperClassLoader" + hash, (Class<? super DynamicMapperClassLoader>) classLoaderType, loader);
 		classLoaderType = null;
