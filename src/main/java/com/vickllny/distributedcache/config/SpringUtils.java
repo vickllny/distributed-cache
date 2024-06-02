@@ -54,9 +54,17 @@ public class SpringUtils implements ApplicationContextAware {
     }
 
 
+    public static <T> void removeBeanDefinition(final String beanName){
+        ((AnnotationConfigServletWebServerApplicationContext) context).removeBeanDefinition(beanName);
+    }
+    public static <T> void registerBeanDefinition(final String beanName, final Class<T> clazz, T bean){
+        final BeanDefinitionBuilder definition = BeanDefinitionBuilder.rootBeanDefinition(clazz, () -> bean);
+        ((AnnotationConfigServletWebServerApplicationContext) context).registerBeanDefinition(beanName, definition.getBeanDefinition());
+    }
     public static void registerBean(String beanName, Object bean){
         final ConfigurableListableBeanFactory beanFactory = ((AnnotationConfigServletWebServerApplicationContext) context).getBeanFactory();
         beanFactory.registerSingleton(beanName, bean);
+
     }
 
     public static void destroyBean(final Object bean){

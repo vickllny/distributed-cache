@@ -55,16 +55,17 @@ public class DynamicMapperClassLoader extends ClassLoader {
     public void uninstall(){
         //entity
         this.entityClazz = null;
+        SpringUtils.removeBeanDefinition(this.beanName);
         //mapper
-        final SqlSessionFactory sessionFactory = ContextUtils.getBean(SqlSessionFactory.class);
-        ((MybatisConfiguration)sessionFactory.getConfiguration()).removeMapper(this.mapperClazz);
-        final Object mapperBean = ContextUtils.getBean(mapperClazz);
-        SpringUtils.destroyBean(mapperBean);
-        this.mapperClazz = null;
+//        final SqlSessionFactory sessionFactory = ContextUtils.getBean(SqlSessionFactory.class);
+//        ((MybatisConfiguration)sessionFactory.getConfiguration()).removeMapper(this.mapperClazz);
+//        final Object mapperBean = ContextUtils.getBean(mapperClazz);
+//        SpringUtils.destroyBean(mapperBean);
+//        this.mapperClazz = null;
         //service
-        final Object serviceBean = ContextUtils.getBean(serviceClazz);
-        Class<?> aClass = serviceBean.getClass();
-        aClass = null;
-        SpringUtils.destroyBean(serviceBean);
+//        final Object serviceBean = ContextUtils.getBean(serviceClazz);
+//        Class<?> aClass = serviceBean.getClass();
+//        aClass = null;
+//        SpringUtils.destroyBean(serviceBean);
     }
 }
