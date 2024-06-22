@@ -101,7 +101,7 @@ public class DistributedCacheApplication implements CommandLineRunner {
 			public Object getValue(final String paramName) throws IllegalArgumentException {
 				return null;
 			}
-		})
+		});
 
 
 		final String hash = hash(UUID.randomUUID().toString(), 6);
