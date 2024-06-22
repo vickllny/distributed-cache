@@ -2,7 +2,7 @@ package com.vickllny.distributedcache.domain;
 
 import com.google.common.base.CaseFormat;
 
-public class ColumnDTO {
+public class ColumnDTO<T> {
     /**
      * 数据库字段名称
      */
@@ -16,7 +16,7 @@ public class ColumnDTO {
     /**
      * 属性类型
      */
-    protected Class<?> javaType = String.class;
+    protected T value;
 
     public ColumnDTO() {
     }
@@ -31,10 +31,10 @@ public class ColumnDTO {
         this.fieldName = fieldName;
     }
 
-    public ColumnDTO(final String columnName, final String fieldName, final Class<?> javaType) {
+    public ColumnDTO(final String columnName, final String fieldName, final T value) {
         this.columnName = columnName;
         this.fieldName = fieldName;
-        this.javaType = javaType;
+        this.value = value;
     }
 
     public String getColumnName() {
@@ -53,11 +53,11 @@ public class ColumnDTO {
         this.fieldName = fieldName;
     }
 
-    public Class<?> getJavaType() {
-        return javaType;
+    public T getValue() {
+        return value;
     }
 
-    public void setJavaType(final Class<?> javaType) {
-        this.javaType = javaType;
+    public void setValue(final T value) {
+        this.value = value;
     }
 }

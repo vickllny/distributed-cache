@@ -17,11 +17,11 @@ public class FeatureConfigDTO {
 
     protected String dataSourceId;
 
-    protected final Map<String, ColumnDTO> standardColumn = new HashMap<>();
+    protected final Map<String, ColumnDTO<?>> standardColumn = new HashMap<>();
 
-    protected final Map<String, ColumnDTO> orgColumn = new HashMap<>();
+    protected final Map<String, ColumnDTO<?>> orgColumn = new HashMap<>();
 
-    protected final Map<String, ColumnDTO> extraColumn = new HashMap<>();
+    protected final Map<String, ColumnDTO<?>> extraColumn = new HashMap<>();
 
     public FeatureConfigDTO() {
     }
@@ -78,26 +78,26 @@ public class FeatureConfigDTO {
         this.dataSourceId = dataSourceId;
     }
 
-    public Map<String, ColumnDTO> getStandardColumn() {
+    public Map<String, ColumnDTO<?>> getStandardColumn() {
         return standardColumn;
     }
 
-    public Map<String, ColumnDTO> getOrgColumn() {
+    public Map<String, ColumnDTO<?>> getOrgColumn() {
         return orgColumn;
     }
 
-    public Map<String, ColumnDTO> getExtraColumn() {
+    public Map<String, ColumnDTO<?>> getExtraColumn() {
         return extraColumn;
     }
 
     public void addOrgColumn(final String orgColumn){
         final String newColumn = "o_" + orgColumn;
-        this.orgColumn.computeIfAbsent(newColumn, v -> new ColumnDTO(newColumn));
+        this.orgColumn.computeIfAbsent(newColumn, v -> new ColumnDTO<>(newColumn));
     }
 
     public void addExtraColumn(final String extraColumn){
         final String newColumn = "e_" + extraColumn;
-        this.extraColumn.computeIfAbsent(newColumn, v -> new ColumnDTO(newColumn));
+        this.extraColumn.computeIfAbsent(newColumn, v -> new ColumnDTO<>(newColumn));
     }
 
     public String tableName(){
